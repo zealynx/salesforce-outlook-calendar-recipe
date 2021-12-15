@@ -1,15 +1,37 @@
 public class OutlookCalendarHandler {
 
+  static Map<Id,sObject> queryRecords(Set<Id> ids){
+    //  MODIFY THIS TO MEET YOUR PURPOSES
+    String queryString = 'SELECT ';
+    queryString += ' FROM ';
+    queryString += ' WHERE Id IN: ids';
+    List<sObject> records = database.query(queryString);
+    return new Map<Id,sObject>(records);
+  }
+	
+	
   @InvocableMethod(callout=true label='Save Outlook Event' description='')
   public static List<EventResponse> saveOutlookEvents(List<EventRequest> requests) {
     List<EventResponse> responses = new List<EventResponse>();
+    Map<Id,sObject> idRecordMap = new Map<Id,sObject>();
     for ( EventRequest req : requests ){      
+      ids.add(req.recordId);
+    }
+    Map<Id,sObject> recordMap = queryRecords(ids);
+    for ( EventRequest req : requests ){
+      req.record = idRecordMap.get(req.recordId);    
       HttpResponse res = callout('POST', 'callout:Zealynx', headers, JSON.serialize(req);
       EventResponse er = new EventResponse();
       Map<String,Object> resMap = (Map<String,Object>)JSON.deserializeUntyped(res.getBody());
-      er.isSuccess = resMap.get('isSuccess');
-      er.externalId = resMap.get('externalId');
-      er.externalId = resMap.get('externalId');
+      if ( resMap.containsKey('isSuccess') ){
+        er.isSuccess = resMap.get('isSuccess');
+      }
+      if ( resMap.containsKey('errorMessage') ){
+        er.errorMessage = resMap.get('errorMessage');
+      }
+      if ( resMap.containsKey('externalId') ){
+        er.externalId = resMap.get('externalId');
+      }
       responses.add(er);
     }
     return responses;
@@ -24,6 +46,8 @@ public class OutlookCalendarHandler {
 
     @InvocableVariable(label='RecordId' description='' required=true)
     public Id recordId;
+	  
+    sObject record;
   }
 
 
